@@ -2,7 +2,7 @@
 composer install<br/>
 
 //create db if not exists<br/>
-php artisan dayra:createdb<br/>
+php artisan ecommerce:createdb<br/>
 
 //run migrations<br/>
 php artisan migrate<br/>
