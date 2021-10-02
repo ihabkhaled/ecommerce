@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Store;
+use App\Models\User_Token;
 use Validator;
 use JWTAuth;
 use JWTFactory;
-
-
+use Carbon\Carbon;
+use Illuminate\Http\Response;
+use Session;
 class AuthController extends Controller
 {
     /**
@@ -19,7 +22,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'logout']]);
     }
 
     /**
@@ -54,26 +57,64 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $created_at = Carbon::now();
+
+        $validatorUser = Validator::make($request->all(), [
             'full_name' => 'required|string|between:2,100',
             'email' => 'required|string|email|max:100|unique:users',
             'password' => 'required|string|confirmed|min:6',
-            'mobile' => 'required|string|min:11|max:11',
+            'mobile' => 'required|string|min:11|max:11|unique:users',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
+        if ($validatorUser->fails()) {
+            return response()->json($validatorUser->errors()->toJson(), 400);
         }
 
-        $user = User::create(array_merge(
-            $validator->validated(),
-            ['password' => bcrypt($request->password)]
-        ));
+        //validations for store
+        $validatorStore = Validator::make($request->all(), [
+            'store_name' => 'required|string|between:2,100'
+        ]);
 
-        return response()->json([
-            'message' => 'User successfully registered',
-            'user' => $user
-        ], 201);
+        if ($validatorStore->fails()) {
+            return response()->json($validatorStore->errors(), 422);
+        }
+
+        $storeModel = new Store;
+        try {
+            $user = User::create(array_merge(
+                $validatorUser->validated(),
+                ['password' => bcrypt($request->password), 'created_at' => $created_at],
+            ));
+            $user_id = $user->id;
+
+            if ($user_id) {
+                //Save the store
+                $storeModel->store_name = $request->store_name;
+                $storeModel->user_id = $user_id;
+                $storeModel->created_at = $created_at;
+                $storeModel->save();
+
+                if ($storeModel->id) {
+                    return response()->json([
+                        'message' => 'User and Store are successfully registered',
+                        'user' => $user,
+                        'store' => $storeModel
+                    ], 201);
+                } else {
+                    return response()->json([
+                        'message' => 'User registered, Store rejected!'
+                    ], 400);
+                }
+            } else {
+                return response()->json([
+                    'message' => 'User registeration error'
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
 
@@ -84,9 +125,12 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        auth()->logout();
+        // auth()->logout();
+        Session::put('logged_in', 0);
+        User_Token::where('token', $_COOKIE['auth'])->delete();
+        cookie('auth', '', 10080);
 
-        return response()->json(['message' => 'User successfully signed out']);
+        return redirect('/login')->withCookie(cookie('auth', '', 10080));
     }
 
     /**
@@ -108,11 +152,25 @@ class AuthController extends Controller
      */
     protected function createNewToken($token)
     {
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => JWTFactory::getTTL() * 60,
-            'user' => auth()->user()
-        ]);
+        $user_id = auth()->user()->id;
+        $user = new User_Token;
+        try {
+            //Save the user
+            $user->user_id = $user_id;
+            $user->token = $token;
+            $user->save();
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
+        }
+
+        // $response = new Response(array(
+        //     'access_token' => $token,
+        //     'token_type' => 'bearer',
+        //     'expires_in' => JWTFactory::getTTL() * 24 * 7,
+        //     'user' => auth()->user()
+        // ));
+        return redirect('/cart')->withCookie(cookie('auth', $token, 10080));
     }
 }

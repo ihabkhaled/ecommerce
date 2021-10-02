@@ -4,6 +4,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,14 +18,32 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::group(['middleware' => ['jwt.test']], function () {
+    Route::get('/login', function () {
+        if (Session::get('logged_in') != 1) {
+            return view('login');
+        } else {
+            return redirect('/');
+        }
+    });
 
-Route::group(['middleware' => ['jwt.verify']], function () {
-    Route::resource('user', UserController::class);
-    Route::resource('store', StoreController::class);
-    Route::resource('product', ProductController::class);
-});
+    Route::get('/register', function () {
+        if (Session::get('logged_in') != 1) {
+            return view('signup');
+        } else {
+            return redirect('/');
+        }
+    });
 
-Route::resource('cart', CartController::class);
+    Route::group(['middleware' => ['jwt.verify']], function () {
+        Route::post('store', [StoreController::class, 'store']);
+        Route::resource('user', UserController::class);
+        Route::resource('product', ProductController::class);
+        // Route::resource('store', StoreController::class);
+    });
+
+    Route::get('/', [StoreController::class, 'index']);
+    Route::get('/store/{id}', [StoreController::class, 'show']);
+    Route::get('/store', [StoreController::class, 'index']);
+    Route::resource('cart', CartController::class);
+});

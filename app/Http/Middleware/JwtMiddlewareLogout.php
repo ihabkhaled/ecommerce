@@ -3,15 +3,14 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\Request;
 use JWTAuth;
 use Exception;
-use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
 use App\Models\User_Token;
 use Session;
 
-class JwtMiddleware extends BaseMiddleware
+class JwtMiddlewareLogout
 {
-
     /**
      * Handle an incoming request.
      *
@@ -19,9 +18,9 @@ class JwtMiddleware extends BaseMiddleware
      * @param  \Closure  $next
      * @return mixed
      */
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next)
     {
-        try {   
+        try {
             if ($_COOKIE['auth'] != null) {
                 $request->headers->set('Authorization', "bearer " . $_COOKIE['auth']);
                 $user_id_session = '';
@@ -29,19 +28,16 @@ class JwtMiddleware extends BaseMiddleware
                 if ($user_id_session) {
                     Session::put('user_id_session', $user_id_session);
                 }
+                Session::put('logged_in', 1);
+            } else {
+                Session::put('user_id_session', NULL);
+                Session::put('logged_in', 0);
             }
             $user = JWTAuth::parseToken()->authenticate();
         } catch (Exception $e) {
+            Session::put('user_id_session', NULL);
             Session::put('logged_in', 0);
-            if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
-                return response()->json(['status' => 'Token is Invalid']);
-            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
-                return response()->json(['status' => 'Token is Expired']);
-            } else {
-                return response()->json(['status' => 'Authorization Token not found']);
-            }
         }
-        Session::put('logged_in', 1);
         return $next($request);
     }
 }

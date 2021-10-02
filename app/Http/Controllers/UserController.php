@@ -57,18 +57,6 @@ class UserController extends Controller
         $mobile = $request->mobile;
         $password = bcrypt($request->password);
 
-        //handle email duplication error
-        /* $user = User::where('email', $email)->limit(1)->get();
-        if (sizeof($user) == 1) {
-            return array('status' => 'error', 'msg' => 'Email already exists');
-        } */
-
-        //handle mobile duplication error
-        /* $user = User::where('mobile', $mobile)->limit(1)->get();
-        if (sizeof($user) == 1) {
-            return array('status' => 'error', 'msg' => 'Mobile number already exists');
-        } */
-
         $userModel = new User;
         try {
             //Save the user
@@ -78,9 +66,15 @@ class UserController extends Controller
             $userModel->mobile = $mobile;
             $userModel->created_at = $created_at;
             $userModel->save();
-            return array('status' => 'success', 'msg' => 'User saved');
+
+            return response()->json([
+                'message' => 'User successfully registered',
+                'user' => $userModel
+            ], 201);
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 

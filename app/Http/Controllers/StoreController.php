@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Store;
+use App\Models\Product;
 use Carbon\Carbon;
 use Validator;
+use JWTAuth;
+use Session;
 
 class StoreController extends Controller
 {
@@ -17,6 +20,9 @@ class StoreController extends Controller
     public function index()
     {
         //
+        $stores = Store::select('*')->get();
+
+        return view('stores', ['stores' => $stores]);
     }
 
     /**
@@ -39,6 +45,7 @@ class StoreController extends Controller
     {
         //
         $created_at = Carbon::now();
+        $request->user_id = Session::get('user_id_session');
 
         $validator = Validator::make($request->all(), [
             'store_name' => 'required|string|between:2,100',
@@ -56,9 +63,15 @@ class StoreController extends Controller
             $storeModel->user_id = $request->user_id;
             $storeModel->created_at = $created_at;
             $storeModel->save();
-            return array('status' => 'success', 'msg' => 'Store saved');
+
+            return response()->json([
+                'message' => 'Store successfully added',
+                'user' => $storeModel
+            ], 201);
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 
@@ -71,6 +84,10 @@ class StoreController extends Controller
     public function show($id)
     {
         //
+        $products = Product::where('store_id', $id)->select('*')->get();
+        $store = Store::where('id', $id)->select('store_name')->limit(1)->first()->value('store_name');
+
+        return view('storeProducts', ['products' => $products, 'store_id' => $id, 'store_name' => $store]);
     }
 
     /**

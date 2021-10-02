@@ -60,9 +60,15 @@ class ProductController extends Controller
             $productModel->store_id = $request->store_id;
             $productModel->created_at = $created_at;
             $productModel->save();
-            return array('status' => 'success', 'msg' => 'Product saved');
+
+            return response()->json([
+                'message' => 'Product successfully added',
+                'user' => $productModel
+            ], 201);
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 
@@ -75,6 +81,8 @@ class ProductController extends Controller
     public function show($id)
     {
         //
+        echo "show";
+        dd($id);
     }
 
     /**
@@ -86,6 +94,8 @@ class ProductController extends Controller
     public function edit($id)
     {
         //
+        echo "show";
+        dd($id);
     }
 
     /**
@@ -98,6 +108,8 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         //
+        echo "show";
+        dd($id);
     }
 
     /**
@@ -109,5 +121,7 @@ class ProductController extends Controller
     public function destroy($id)
     {
         //
+        echo "show";
+        dd($id);
     }
 }

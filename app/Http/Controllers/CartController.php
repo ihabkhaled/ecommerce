@@ -9,6 +9,7 @@ use App\Models\Store;
 use Carbon\Carbon;
 use Validator;
 use Session;
+use Illuminate\Support\Facades\Route;
 
 class CartController extends Controller
 {
@@ -20,19 +21,21 @@ class CartController extends Controller
     public function index()
     {
         //
+        $msg = '';
+        if (Session::get('deleted') == 1) {
+            $msg = "Product removed from your cart!";
+        } else if (Session::get('deleted') == 2) {
+            $msg = "Error removing product!";
+        }
+
         $session_id = Session::getId();
         $cartData = Cart::where('guest_session', $session_id)
-            ->select('products.product_name', 'products.product_price', 'stores.store_name')
+            ->select('products.product_name', 'products.product_price', 'stores.store_name', 'carts.id')
             ->join('products', 'products.id', '=', 'carts.product_id')
             ->join('stores', 'stores.id', '=', 'products.store_id')
             ->get();
 
-        $total = 0;
-        foreach ($cartData as $row) {
-            $total += $row->product_price;
-            echo $row->store_name . " - " . $row->product_name . " <b> " . $row->product_price  . "</b>" . "<br>";
-        }
-        echo "<h2 align='right'>Total: $total</h2>";
+        return view('cart', ['total' => 0, 'cartData' => $cartData, 'msg' => $msg]);
     }
 
     /**
@@ -59,8 +62,8 @@ class CartController extends Controller
         $created_at = Carbon::now();
 
         $validator = Validator::make($request->all(), [
-            // 'guest_session' => 'required|string|between:2,500',
-            'product_id' => 'required|exists:products,id'
+            'product_id' => 'required|exists:products,id',
+            'store_id' => 'required|exists:stores,id'
         ]);
 
         if ($validator->fails()) {
@@ -74,9 +77,12 @@ class CartController extends Controller
             $cartModel->product_id = $request->product_id;
             $cartModel->created_at = $created_at;
             $cartModel->save();
-            return array('status' => 'success', 'msg' => 'Product added to cart');
+
+            return redirect('/cart')->with('added', 1);
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 
@@ -89,6 +95,8 @@ class CartController extends Controller
     public function show($id)
     {
         //
+        echo "show";
+        dd($id);
     }
 
     /**
@@ -99,6 +107,8 @@ class CartController extends Controller
      */
     public function edit($id)
     {
+        echo "edit";
+        dd($id);
         //
     }
 
@@ -123,5 +133,10 @@ class CartController extends Controller
     public function destroy($id)
     {
         //
+        if (Cart::where('id', $id)->delete()) {
+            return redirect('/cart')->with('deleted', 1);
+        } else {
+            return redirect('/cart')->with('deleted', 2);
+        }
     }
 }
