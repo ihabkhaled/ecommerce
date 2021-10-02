@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\StoreController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,3 +20,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::group(['middleware' => ['jwt.verify']], function () {
+    Route::resource('user', UserController::class);
+    Route::resource('store', StoreController::class);
+    Route::resource('product', ProductController::class);
+});
+
+Route::resource('cart', CartController::class);
