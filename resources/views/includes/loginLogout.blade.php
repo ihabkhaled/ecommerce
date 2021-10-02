@@ -1,5 +1,5 @@
 @if (session('logged_in') == 1)
-<form align='right' action="/api/auth/logout" method="post">
+<form align='right' action="/api/auth/logout" method="get">
     <button type="submit" class="btn btn-primary">Logout</button>
 </form>
 @else

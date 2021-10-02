@@ -25,7 +25,7 @@ class JwtMiddleware extends BaseMiddleware
             if ($_COOKIE['auth'] != null) {
                 $request->headers->set('Authorization', "bearer " . $_COOKIE['auth']);
                 $user_id_session = '';
-                $user_id_session = User_Token::where('token', $_COOKIE['auth'])->first()->value('user_id');
+                $user_id_session = User_Token::where('token', $_COOKIE['auth'])->value('user_id');
                 if ($user_id_session) {
                     Session::put('user_id_session', $user_id_session);
                 }

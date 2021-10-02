@@ -46,7 +46,7 @@ class ecommerce_db_create extends Command
 
         $query = "CREATE DATABASE IF NOT EXISTS $dbName CHARACTER SET $charset COLLATE $collation;";
 
-        if(DB::statement($query) == 1) {
+        if(DB::connection('mysql_only_connect')->statement($query) == 1) {
             echo "Database created successfully!";
         }
 
